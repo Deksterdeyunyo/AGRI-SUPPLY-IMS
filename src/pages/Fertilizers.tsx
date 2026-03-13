@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/Button'
@@ -12,6 +12,18 @@ export default function Fertilizers() {
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const getStatusBadge = (qty: number) => {
+    if (qty <= 0) {
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Out of Stock</span>
+    }
+    if (qty < 10) {
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Low Stock</span>
+    }
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">In Stock</span>
+  }
 
   const [formData, setFormData] = useState({
     fertilizer_name: '',
@@ -43,19 +55,79 @@ export default function Fertilizers() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
-    const { error } = await supabase
-      .from('fertilizers')
-      .insert([formData])
     
-    if (!error) {
-      setIsModalOpen(false)
-      fetchItems()
-      setFormData({
-        fertilizer_name: '', type: '', brand: '', supplier: '',
-        date_received: '', qty_received: '', qty_available: '',
-        unit: '', storage_location: '', remarks: ''
-      })
+    if (editingId) {
+      const { error } = await supabase
+        .from('fertilizers')
+        .update(formData)
+        .eq('id', editingId)
+      
+      if (!error) {
+        setIsModalOpen(false)
+        setEditingId(null)
+        fetchItems()
+        setFormData({
+          fertilizer_name: '', type: '', brand: '', supplier: '',
+          date_received: '', qty_received: '', qty_available: '',
+          unit: '', storage_location: '', remarks: ''
+        })
+      }
+    } else {
+      const { error } = await supabase
+        .from('fertilizers')
+        .insert([formData])
+      
+      if (!error) {
+        setIsModalOpen(false)
+        fetchItems()
+        setFormData({
+          fertilizer_name: '', type: '', brand: '', supplier: '',
+          date_received: '', qty_received: '', qty_available: '',
+          unit: '', storage_location: '', remarks: ''
+        })
+      }
     }
+  }
+
+  const handleEdit = (item: any) => {
+    setFormData({
+      fertilizer_name: item.fertilizer_name || '',
+      type: item.type || '',
+      brand: item.brand || '',
+      supplier: item.supplier || '',
+      date_received: item.date_received || '',
+      qty_received: item.qty_received || '',
+      qty_available: item.qty_available || '',
+      unit: item.unit || '',
+      storage_location: item.storage_location || '',
+      remarks: item.remarks || ''
+    })
+    setEditingId(item.id)
+    setIsModalOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (deleteId) {
+      const { error } = await supabase
+        .from('fertilizers')
+        .delete()
+        .eq('id', deleteId)
+      
+      if (!error) {
+        fetchItems()
+      }
+      setDeleteId(null)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setEditingId(null)
+    setFormData({
+      fertilizer_name: '', type: '', brand: '', supplier: '',
+      date_received: '', qty_received: '', qty_available: '',
+      unit: '', storage_location: '', remarks: ''
+    })
   }
 
   const filteredItems = items.filter(item => 
@@ -67,7 +139,15 @@ export default function Fertilizers() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Fertilizers Inventory</h1>
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={() => {
+          setEditingId(null)
+          setFormData({
+            fertilizer_name: '', type: '', brand: '', supplier: '',
+            date_received: '', qty_received: '', qty_available: '',
+            unit: '', storage_location: '', remarks: ''
+          })
+          setIsModalOpen(true)
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add New
         </Button>
@@ -93,6 +173,7 @@ export default function Fertilizers() {
             <TableHead>Date Received</TableHead>
             <TableHead>Qty Received</TableHead>
             <TableHead>Qty Available</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Unit</TableHead>
             <TableHead>Storage Location</TableHead>
             <TableHead>Remarks</TableHead>
@@ -102,11 +183,11 @@ export default function Fertilizers() {
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={11} className="text-center py-8 text-gray-500">Loading...</TableCell>
+              <TableCell colSpan={12} className="text-center py-8 text-gray-500">Loading...</TableCell>
             </TableRow>
           ) : filteredItems.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={11} className="text-center py-8 text-gray-500">No records found</TableCell>
+              <TableCell colSpan={12} className="text-center py-8 text-gray-500">No records found</TableCell>
             </TableRow>
           ) : (
             filteredItems.map((item) => (
@@ -118,15 +199,22 @@ export default function Fertilizers() {
                 <TableCell>{item.date_received}</TableCell>
                 <TableCell>{item.qty_received}</TableCell>
                 <TableCell>{item.qty_available}</TableCell>
+                <TableCell>{getStatusBadge(Number(item.qty_available))}</TableCell>
                 <TableCell>{item.unit}</TableCell>
                 <TableCell>{item.storage_location}</TableCell>
                 <TableCell>{item.remarks}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <button className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors">
+                    <button 
+                      onClick={() => handleEdit(item)}
+                      className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                    >
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors">
+                    <button 
+                      onClick={() => setDeleteId(item.id)}
+                      className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -137,7 +225,7 @@ export default function Fertilizers() {
         </TableBody>
       </Table>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Record">
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingId ? "Edit Record" : "Add New Record"}>
         <form onSubmit={handleAdd} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -192,8 +280,8 @@ export default function Fertilizers() {
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-6">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Add</Button>
+            <Button type="button" variant="outline" onClick={handleCloseModal}>Cancel</Button>
+            <Button type="submit">{editingId ? "Update" : "Add"}</Button>
           </div>
         </form>
       </Modal>

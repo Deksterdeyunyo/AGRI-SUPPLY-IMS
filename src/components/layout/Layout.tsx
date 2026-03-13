@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom"
 import { LayoutDashboard, Sprout, FlaskConical, Syringe, Bug, Users, Truck, FileText, LogOut, Menu } from "lucide-react"
 import { cn } from "../../lib/utils"
 import { useAuth } from "../../contexts/AuthContext"
-import { useState } from "react"
+import React, { useState } from "react"
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
