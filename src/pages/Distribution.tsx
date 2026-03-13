@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 export default function Distribution() {
   const [items, setItems] = useState<any[]>([])
   const [recipients, setRecipients] = useState<any[]>([])
+  const [availableItems, setAvailableItems] = useState<string[]>([])
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -17,6 +18,7 @@ export default function Distribution() {
 
   const [formData, setFormData] = useState({
     recipient: '',
+    category: '',
     item_name: '',
     quantity: '',
     date: '',
@@ -30,6 +32,45 @@ export default function Distribution() {
     fetchItems()
     fetchRecipients()
   }, [])
+
+  useEffect(() => {
+    if (formData.category) {
+      fetchAvailableItems(formData.category)
+    } else {
+      setAvailableItems([])
+    }
+  }, [formData.category])
+
+  const fetchAvailableItems = async (category: string) => {
+    let tableName = ''
+    let nameColumn = ''
+    
+    switch (category) {
+      case 'Seeds':
+        tableName = 'seeds'
+        nameColumn = 'seed_name'
+        break
+      case 'Fertilizers':
+        tableName = 'fertilizers'
+        nameColumn = 'fertilizer_name'
+        break
+      case 'Vet & Chemicals':
+        tableName = 'vet_chemicals'
+        nameColumn = 'product_name'
+        break
+      case 'Pesticides':
+        tableName = 'pesticides'
+        nameColumn = 'pesticide_name'
+        break
+      default:
+        return
+    }
+
+    const { data } = await supabase.from(tableName).select(nameColumn)
+    if (data) {
+      setAvailableItems(data.map(item => item[nameColumn]))
+    }
+  }
 
   const fetchRecipients = async () => {
     const { data } = await supabase
@@ -64,7 +105,7 @@ export default function Distribution() {
         setEditingId(null)
         fetchItems()
         setFormData({
-          recipient: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
+          recipient: '', category: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
         })
       }
     } else {
@@ -76,7 +117,7 @@ export default function Distribution() {
         setIsModalOpen(false)
         fetchItems()
         setFormData({
-          recipient: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
+          recipient: '', category: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
         })
       }
     }
@@ -85,6 +126,7 @@ export default function Distribution() {
   const handleEdit = (item: any) => {
     setFormData({
       recipient: item.recipient || '',
+      category: item.category || '',
       item_name: item.item_name || '',
       quantity: item.quantity || '',
       date: item.date || '',
@@ -115,7 +157,7 @@ export default function Distribution() {
     setIsModalOpen(false)
     setEditingId(null)
     setFormData({
-      recipient: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
+      recipient: '', category: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
     })
   }
 
@@ -131,7 +173,7 @@ export default function Distribution() {
         <Button onClick={() => {
           setEditingId(null)
           setFormData({
-            recipient: '', date: '', distributed_by: '', program: '', remarks: ''
+            recipient: '', category: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
           })
           setIsModalOpen(true)
         }}>
@@ -154,6 +196,7 @@ export default function Distribution() {
         <TableHeader>
           <TableRow>
             <TableHead>Recipient</TableHead>
+            <TableHead>Category</TableHead>
             <TableHead>Item</TableHead>
             <TableHead>Quantity</TableHead>
             <TableHead>Date</TableHead>
@@ -167,16 +210,21 @@ export default function Distribution() {
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-gray-500">Loading...</TableCell>
+              <TableCell colSpan={10} className="text-center py-8 text-gray-500">Loading...</TableCell>
             </TableRow>
           ) : filteredItems.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-gray-500">No records found</TableCell>
+              <TableCell colSpan={10} className="text-center py-8 text-gray-500">No records found</TableCell>
             </TableRow>
           ) : (
             filteredItems.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>{item.recipient}</TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    {item.category}
+                  </span>
+                </TableCell>
                 <TableCell>{item.item_name}</TableCell>
                 <TableCell>{item.quantity}</TableCell>
                 <TableCell>{item.date}</TableCell>
@@ -225,8 +273,35 @@ export default function Distribution() {
               </datalist>
             </div>
             <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Category</label>
+              <select
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004d40] focus:border-transparent"
+                value={formData.category}
+                onChange={e => setFormData({...formData, category: e.target.value, item_name: ''})}
+              >
+                <option value="">Select Category</option>
+                <option value="Seeds">Seeds</option>
+                <option value="Fertilizers">Fertilizers</option>
+                <option value="Vet & Chemicals">Vet & Chemicals</option>
+                <option value="Pesticides">Pesticides</option>
+              </select>
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Item Distributed</label>
-              <Input required value={formData.item_name} onChange={e => setFormData({...formData, item_name: e.target.value})} placeholder="e.g. Fertilizer A" />
+              <Input 
+                list="items-list"
+                required 
+                value={formData.item_name} 
+                onChange={e => setFormData({...formData, item_name: e.target.value})} 
+                placeholder={formData.category ? "Type to search items..." : "Select a category first"}
+                disabled={!formData.category}
+              />
+              <datalist id="items-list">
+                {availableItems.map((item, i) => (
+                  <option key={i} value={item} />
+                ))}
+              </datalist>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Quantity</label>
