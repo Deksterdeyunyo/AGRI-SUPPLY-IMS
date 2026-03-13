@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -104,7 +104,14 @@ export default function Distribution() {
                 <TableCell>{item.program}</TableCell>
                 <TableCell>{item.remarks}</TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm" className="text-blue-600">View Details</Button>
+                  <div className="flex items-center gap-2">
+                    <button className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))

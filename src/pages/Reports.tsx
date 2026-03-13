@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table'
+import { Button } from '../components/ui/Button'
+import { Printer, Download } from 'lucide-react'
 
 export default function Reports() {
   const [lowStockSeeds, setLowStockSeeds] = useState<any[]>([])
@@ -36,11 +38,56 @@ export default function Reports() {
     setLoading(false)
   }
 
-  return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+  const handleExport = () => {
+    let csvContent = "data:text/csv;charset=utf-8,"
+    
+    csvContent += "Low Stock Seeds\n"
+    csvContent += "Seed Name,Variety,Available,Unit\n"
+    lowStockSeeds.forEach(seed => {
+      csvContent += `"${seed.seed_name}","${seed.variety}","${seed.qty_available}","${seed.unit}"\n`
+    })
 
-      <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
+    csvContent += "\nRecent Distributions\n"
+    csvContent += "Recipient,Date,Program,Distributed By\n"
+    recentDistributions.forEach(dist => {
+      csvContent += `"${dist.recipient}","${dist.date}","${dist.program}","${dist.distributed_by}"\n`
+    })
+
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", "inventory_report.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  return (
+    <div className="space-y-8 print:space-y-6">
+      <div className="hidden print:block text-center mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Agricultural Supply Inventory Report</h1>
+        <p className="text-gray-500 mt-2">Generated on {new Date().toLocaleDateString()}</p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
+        <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-2" />
+            Print
+          </Button>
+          <Button onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow border border-gray-100 print:shadow-none print:border-none">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Low Stock Seeds (below 10)</h2>
         <Table>
           <TableHeader>
@@ -74,7 +121,7 @@ export default function Reports() {
         </Table>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
+      <div className="bg-white p-6 rounded-lg shadow border border-gray-100 print:shadow-none print:border-none">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Distributions</h2>
         <Table>
           <TableHeader>
