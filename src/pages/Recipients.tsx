@@ -86,7 +86,11 @@ export default function Recipients() {
         })
       } else {
         console.error("Error inserting:", error)
-        alert("Failed to add record. Please check your inputs.")
+        if (!(import.meta as any).env.VITE_SUPABASE_URL) {
+          alert("Database connection missing! Please add your Supabase URL and Anon Key in the Settings menu.")
+        } else {
+          alert("Failed to add record. Please check your inputs.")
+        }
       }
     }
   }
