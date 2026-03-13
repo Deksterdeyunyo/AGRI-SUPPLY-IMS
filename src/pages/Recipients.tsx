@@ -45,10 +45,17 @@ export default function Recipients() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    const payload: any = { ...formData }
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === '') {
+        payload[key] = null
+      }
+    })
+    
     if (editingId) {
       const { error } = await supabase
         .from('recipients')
-        .update(formData)
+        .update(payload)
         .eq('id', editingId)
       
       if (!error) {
@@ -60,11 +67,14 @@ export default function Recipients() {
           contact_number: '', farm_size: '', farmer_group: '',
           date_registered: '', remarks: ''
         })
+      } else {
+        console.error("Error updating:", error)
+        alert("Failed to update record. Please check your inputs.")
       }
     } else {
       const { error } = await supabase
         .from('recipients')
-        .insert([formData])
+        .insert([payload])
       
       if (!error) {
         setIsModalOpen(false)
@@ -74,6 +84,9 @@ export default function Recipients() {
           contact_number: '', farm_size: '', farmer_group: '',
           date_registered: '', remarks: ''
         })
+      } else {
+        console.error("Error inserting:", error)
+        alert("Failed to add record. Please check your inputs.")
       }
     }
   }

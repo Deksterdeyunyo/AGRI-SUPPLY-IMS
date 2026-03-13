@@ -94,10 +94,17 @@ export default function Distribution() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    const payload: any = { ...formData }
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === '') {
+        payload[key] = null
+      }
+    })
+    
     if (editingId) {
       const { error } = await supabase
         .from('distributions')
-        .update(formData)
+        .update(payload)
         .eq('id', editingId)
       
       if (!error) {
@@ -107,11 +114,14 @@ export default function Distribution() {
         setFormData({
           recipient: '', category: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
         })
+      } else {
+        console.error("Error updating:", error)
+        alert("Failed to update record. Please check your inputs.")
       }
     } else {
       const { error } = await supabase
         .from('distributions')
-        .insert([formData])
+        .insert([payload])
       
       if (!error) {
         setIsModalOpen(false)
@@ -119,6 +129,9 @@ export default function Distribution() {
         setFormData({
           recipient: '', category: '', item_name: '', quantity: '', date: '', time: '', distributed_by: '', program: '', remarks: ''
         })
+      } else {
+        console.error("Error inserting:", error)
+        alert("Failed to add record. Please check your inputs.")
       }
     }
   }

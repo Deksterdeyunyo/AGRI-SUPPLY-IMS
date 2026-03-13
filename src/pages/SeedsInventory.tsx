@@ -57,10 +57,17 @@ export default function SeedsInventory() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    const payload: any = { ...formData }
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === '') {
+        payload[key] = null
+      }
+    })
+    
     if (editingId) {
       const { error } = await supabase
         .from('seeds')
-        .update(formData)
+        .update(payload)
         .eq('id', editingId)
       
       if (!error) {
@@ -72,11 +79,14 @@ export default function SeedsInventory() {
           date_received: '', expiration_date: '', qty_received: '',
           qty_available: '', unit: '', storage_location: '', remarks: ''
         })
+      } else {
+        console.error("Error updating:", error)
+        alert("Failed to update record. Please check your inputs.")
       }
     } else {
       const { error } = await supabase
         .from('seeds')
-        .insert([formData])
+        .insert([payload])
       
       if (!error) {
         setIsModalOpen(false)
@@ -86,6 +96,9 @@ export default function SeedsInventory() {
           date_received: '', expiration_date: '', qty_received: '',
           qty_available: '', unit: '', storage_location: '', remarks: ''
         })
+      } else {
+        console.error("Error inserting:", error)
+        alert("Failed to add record. Please check your inputs.")
       }
     }
   }
